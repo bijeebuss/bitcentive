@@ -1,28 +1,8 @@
 {
   "compilerOptions": {
-    "outDir": "./dist",
-    "declaration": true,
-    "module": "commonjs",
+    "module": "commonjs", //helps it find types in node_modules
     "target": "ES2016",
-    "lib": [
-      "esnext",
-      "dom"
-    ],
     "noImplicitAny": true,
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "~*": ["./*"]
-    }
-  },
-  "include": [
-    "index.ts",
-    "api/**/*",
-    "config/**/*",
-    "src/**/*",
-    "test/**/*",
-    "types/**/*",
-    "cli/**/*",
-    "migrations/**/*"
-  ]
+    "strict": true
+  }
 }

@@ -1,11 +1,9 @@
-import * as buildTempo from '@digix/tempo';
+const digix = require('@digix/tempo');
 import {BigNumber} from 'bignumber.js';
 
-const tempo = buildTempo(web3);
-
+const tempo = digix(web3);
 
 type NumberLike = string | number | BigNumber;
-
 
 const ETH_DECIMALS = 18;
 const DEFAULT_ACCEPTABLE_ERROR = web3.toWei(1, 'finney');

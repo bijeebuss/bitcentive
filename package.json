@@ -9,10 +9,14 @@
     "compile": "truffle compile",
     "compile-test": "truffle compile --contracts_build_directory .cache/test/contracts"
   },
+  "engines": {
+    "vscode": "1.21.1",
+    "node": "9.10.0"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bignumber.js": "2.0.7",
+    "bignumber.js": "4.1.0",
     "bip39": "2.4.0",
     "ethereumjs-util": "5.1.2",
     "ethereumjs-wallet": "0.6.0",

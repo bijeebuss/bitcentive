@@ -21,6 +21,11 @@ contract('BitCentive', (accounts) => {
       assert.equal(await bitCentive.owner.call(), owner);
     });
 
+    it('uses less gas', async () => {
+      let tx = await bitCentive.createCampaign(1);
+      tx = await bitCentive.createCampaign(2);
+    });
+
     it('should work', async () => {
       try {
         await bitCentive.test();

@@ -4,10 +4,18 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 contract BitCentive is Ownable {
 
+  function parseCampaignData(uint32 data) private {
+
+  }
+
   // ------------------------------------------------------------------
   // PUBLIC MUTABLE FUNCTIONS
   // ------------------------------------------------------------------
-  function createCampaign(uint32 data) public {
+  function createCampaign(bytes2 data) public {
+
+  }
+
+  function createCampaign2(bytes1 dates, bytes1 time) public {
 
   }
 

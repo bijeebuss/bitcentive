@@ -5,9 +5,9 @@
   "main": "index.js",
   "repository": {},
   "scripts": {
-    "test": "npm run prepare-test-contracts && ts-node -- $(npm bin)/truffle test --contracts_build_directory .cache/test/contracts",
+    "test": "npm run compile-test && ts-node -- $(npm bin)/truffle test --contracts_build_directory .cache/test/contracts",
     "compile": "truffle compile",
-    "prepare-test-contracts": "truffle compile --contracts_build_directory .cache/test/contracts"
+    "compile-test": "truffle compile --contracts_build_directory .cache/test/contracts"
   },
   "author": "",
   "license": "ISC",

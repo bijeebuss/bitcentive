@@ -12,7 +12,8 @@
     "quotemark": [true, "single"],
     "no-empty-interface": [false],
     "max-classes-per-file": [false],
-    "no-var-requires": [false]
+    "no-var-requires": [false],
+    "no-arg": [false]
   },
   "rulesDirectory": [],
   "linterOptions": {

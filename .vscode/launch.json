@@ -13,7 +13,8 @@
       "sourceMaps": true,
       "cwd":"${workspaceFolder}",
       "protocol": "inspector",
-      "args": ["test", "--contracts_build_directory", ".cache/test/contracts"]
+      "args": ["test", "--contracts_build_directory", ".cache/test/contracts"],
+      "preLaunchTask": "npm: compile-test",
     },
   ]
 }

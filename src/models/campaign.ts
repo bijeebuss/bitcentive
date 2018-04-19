@@ -5,6 +5,7 @@ export interface CampaignInitData {
   length: number;
   frequency: number;
   cooldown: number;
+  percentage: number;
 }
 
 export interface CampaignData extends CampaignInitData {
@@ -13,6 +14,7 @@ export interface CampaignData extends CampaignInitData {
   stake: number;
   bonus: number;
   missed: number;
+  lastCompleted: number;
 }
 
 type DataPositions<T> = {
@@ -29,6 +31,8 @@ const dataPositions: DataPositions<CampaignData> = {
   started: {start: 22, end: 30},
   bonus: {start: 30, end: 38},
   missed: {start: 38, end: 42},
+  lastCompleted: {start: 42, end: 50},
+  percentage: {start: 50, end: 52},
 };
 
 export class Campaign {
@@ -54,7 +58,10 @@ export class Campaign {
     return 1 === 1
       && (values as CampaignData).stake !== undefined
       && (values as CampaignData).completed !== undefined
-      && (values as CampaignData).started !== undefined;
+      && (values as CampaignData).started !== undefined
+      && (values as CampaignData).bonus !== undefined
+      && (values as CampaignData).missed !== undefined
+      && (values as CampaignData).lastCompleted !== undefined;
   }
 
   private raw: string = '0000000000000000000000000000000000000000000000000000000000000000';
@@ -85,11 +92,15 @@ export class Campaign {
     this.length = values.length;
     this.frequency = values.frequency;
     this.cooldown = values.cooldown;
+    this.percentage = values.percentage;
 
     if (Campaign.isFullCampaignData(values)) {
       this.completed = values.completed;
       this.started = values.started;
       this.stake = values.stake;
+      this.bonus = values.bonus;
+      this.missed = values.missed;
+      this.lastCompleted = values.lastCompleted;
     }
   }
 
@@ -140,4 +151,10 @@ export class Campaign {
 
   public get missed(): number {return this.getNumber('missed'); }
   public set missed(value: number) { this.setNumber('missed', value); }
+
+  public get lastCompleted(): number {return this.getNumber('lastCompleted'); }
+  public set lastCompleted(value: number) { this.setNumber('lastCompleted', value); }
+
+  public get percentage(): number {return this.getNumber('percentage'); }
+  public set percentage(value: number) { this.setNumber('percentage', value); }
 }

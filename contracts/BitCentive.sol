@@ -12,7 +12,7 @@ contract BitCentive is Ownable {
 
   struct Campaign {
     bytes32 data;
-    address judge;
+    address trainer;
   }
 
   event Log(bytes32 data);
@@ -29,12 +29,13 @@ contract BitCentive is Ownable {
   //   bytes4 bonus;           // szabo
   //   bytes2 missed;          // tasks missed
   //   bytes4 lastCompleted;   // time of last completed task
-  //   byte percentage;        // percentage of penalty to give to charity
+  //   byte charityPercentage; // percentage of penalty to give to charity
+  //   byte trainerPercentage; // percentage of payout to give to trainer
   // }
   // ------------------------------------------------------------------
   // PUBLIC MUTABLE FUNCTIONS
   // ------------------------------------------------------------------
-  function createCampaign(bytes32 data, address judge) public payable {
+  function createCampaign(bytes32 data, address trainer) public payable {
     uint256 nonce = data.getNonce();
     require(msg.value < 3000 ether); // to avoid szabo overflow
     require(msg.value % 1 szabo == 0); // must be Szabo granularity
@@ -42,9 +43,13 @@ contract BitCentive is Ownable {
     require(msg.value != 0);
     require(data.getLength() != 0);
     require(data.getFrequency() != 0);
-    require(data.getPercentage() <= 100);
+    require(data.getCharityPercentage() <= 100);
+    require(data.getTrainerPercentage() <= 100);
     require(data.getCooldown() * data.getFrequency() < 168); // must be possible to complete the tasks in time
     require((msg.value / 1 szabo) % totalTasks(data) == 0);  // total stake must be divisible by number of tasks
+    if (trainer == 0) {
+      require(data.getTrainerPercentage() == 0);
+    }
 
     campaigns[msg.sender][nonce].data = data
       .setStake(msg.value / 1 szabo)
@@ -54,14 +59,41 @@ contract BitCentive is Ownable {
       .setMissed(0)
       .setLastCompleted(0);
 
-    if (judge != 0) {
-      campaigns[msg.sender][nonce].judge = judge;
+    if (trainer != 0) {
+      campaigns[msg.sender][nonce].trainer = trainer;
     }
   }
 
-  function completeTask(uint16 nonce) public {
+  function completeTaskSelf(uint16 nonce) public {
     bytes32 data = campaigns[msg.sender][nonce].data;
-    require(campaigns[msg.sender][nonce].judge == 0);
+    require(campaigns[msg.sender][nonce].trainer == 0);
+    completeTask(data, false, 0x0);
+  }
+
+  function completeTaskTrainer(uint16 nonce, uint256 timestamp, bool billable, uint8 v, bytes32 r, bytes32 s) public {
+    bytes32 data = campaigns[msg.sender][nonce].data;
+    address trainer = campaigns[msg.sender][nonce].trainer;
+    bytes32 taskHash = sha256(this, msg.sender, nonce, timestamp, billable);
+    require((now < timestamp + data.getCooldown()) && (now > timestamp - data.getCooldown()));
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", taskHash), v, r, s) == trainer);
+    completeTask(data, billable, trainer);
+  }
+
+  function sponsor(address user, uint16 nonce) public payable {
+    bytes32 data = campaigns[user][nonce].data;
+    require(data.getStarted() != 0);
+    require(msg.value % 1 szabo == 0); // must be Szabo granularity
+    campaigns[user][nonce].data = data.setBonus(data.getBonus() + msg.value / 1 szabo);
+  }
+
+  function donate(bytes32 data) public payable {
+    require(owner.call.value(msg.value)());
+  }
+
+  // ------------------------------------------------------------------
+  // PRIVATE MUTABLE FUNCTIONS
+  // ------------------------------------------------------------------
+  function completeTask(bytes32 data, bool billable, address trainer) private {
     require(data.getStarted() != 0);
     require(now - data.getLastCompleted() > data.getCooldown() * 1 hours);
     require(finished(data) < totalTasks(data));
@@ -81,68 +113,73 @@ contract BitCentive is Ownable {
         .setLastCompleted(now);
     }
 
-    campaigns[msg.sender][nonce].data = data;
+    campaigns[msg.sender][data.getNonce()].data = data;
 
-    sendPayout(data, completed);
-  }
-
-  // function completeTaskSig(uint32 data) public {
-
-  // }
-
-  function sponsor(address user, uint16 nonce) public payable {
-    bytes32 data = campaigns[user][nonce].data;
-    require(data.getStarted() != 0);
-    require(msg.value % 1 szabo == 0); // must be Szabo granularity
-    campaigns[user][nonce].data = data.setBonus(data.getBonus() + msg.value / 1 szabo);
-  }
-
-  function donate(uint32 data) public payable {
-    require(owner.call.value(msg.value)());
+    sendPayout(data, completed, billable, trainer);
   }
 
   // ------------------------------------------------------------------
   // PRIVATE EXTERNALLY CALLING FUNCTIONS
   // ------------------------------------------------------------------
-  function sendPayout(bytes32 data, bool completed) private {
-    uint256 userPayout = 0;
-    uint256 penaltyPayout = 0;
+  function sendPayout(bytes32 data, bool completed, bool billable, address trainer) private {
+    uint256 dueUser = 0;
+    uint256 dueTrainer = 0;
 
     if (completed) {
-      userPayout += payout(data);
-    }
-    // only do bonus and missed once it's finished
-    if (finished(data) >= totalTasks(data)) {
-      // bonus
-      uint256 potentialBonus = data.getBonus() * 1 szabo;
-      uint256 bonusPayout = potentialBonus * data.getCompleted() / totalTasks(data);
-      userPayout += bonusPayout;
-      if (bonusPayout < potentialBonus) {
-        penaltyPayout += potentialBonus - bonusPayout;
+      if (billable) {
+        dueTrainer += trainerPayout(data);
       }
+      dueUser += payout(data) - dueTrainer;
+    }
 
-      // missed
-      if (data.getMissed() > 0) {
-        penaltyPayout += data.getMissed() * payout(data);
-      }
+    // only do penalty and bonus if its the last task
+    if (finished(data) >= totalTasks(data)) {
+      dueUser += processFinalTask(data);
     }
-    if (penaltyPayout > 0) {
-      sendPenalty(penaltyPayout);
+
+    if (dueTrainer > 0) {
+      require(trainer.call.value(dueTrainer)());
     }
-    if (userPayout > 0) {
-      require(msg.sender.call.value(userPayout)());
+    if (dueUser > 0) {
+      require(msg.sender.call.value(dueUser)());
     }
   }
 
-  function sendPenalty(bytes32 data, uint256 penaltyPayout) private {
-    uint256 charityPayout = penaltyPayout * data.getPercentage() / uint256(100);
-    if (charityPayout > 0) {
-      require(charity.call.value(charityPayout)());
+  function processFinalTask(bytes32 data) private returns(uint256 refund) {
+    uint256 penalty = 0;
+
+    // lose bonus for each missed task
+    uint256 potentialBonus = data.getBonus() * 1 szabo;
+    uint256 bonus = potentialBonus * data.getCompleted() / totalTasks(data);
+    refund += bonus;
+
+    if (bonus < potentialBonus) {
+      penalty += potentialBonus - bonus;
     }
 
-    uint256 developerPayout = penaltyPayout - charityPayout;
-    if (developerPayout > 0) {
-      require(owner.call.value(charityPayout)());
+    // the trainer portion of missed payouts is refunded to the user
+    if (data.getMissed() > 0) {
+      uint256 trainingRefund = data.getMissed() * trainerPayout(data);
+      refund += trainingRefund;
+
+      uint256 missedPayouts = data.getMissed() * payout(data);
+      penalty += missedPayouts - trainingRefund;
+    }
+
+    if (penalty > 0) {
+      sendPenalty(data, penalty);
+    }
+  }
+
+  function sendPenalty(bytes32 data, uint256 penalty) private {
+    uint256 dueCharity = penalty * data.getCharityPercentage() / uint256(100);
+    if (dueCharity > 0) {
+      require(charity.call.value(dueCharity)());
+    }
+
+    uint256 dueDeveloper = penalty - dueCharity;
+    if (dueDeveloper > 0) {
+      require(owner.call.value(dueDeveloper)());
     }
   }
 
@@ -164,6 +201,11 @@ contract BitCentive is Ownable {
   // amount per task
   function payout(bytes32 data) private view returns(uint256) {
     return data.getStake() / totalTasks(data) * 1 szabo;
+  }
+
+  // amount per task
+  function trainerPayout(bytes32 data) private view returns(uint256) {
+    return payout(data) * data.getTrainerPercentage() / uint256(100);
   }
 
   // amount finished

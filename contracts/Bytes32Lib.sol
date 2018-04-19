@@ -57,7 +57,8 @@ library Bytes32Lib {
   uint256 internal constant BONUS = 15;
   uint256 internal constant MISSED = 19;
   uint256 internal constant LAST_COMPLETED = 21;
-  uint256 internal constant PERCENTAGE = 25;
+  uint256 internal constant CHARITY_PERCENTAGE = 25;
+  uint256 internal constant TRAINER_PERCENTAGE = 26;
 
   function getNonce(bytes32 data) internal returns(uint256) {
     return data.getBytes2(NONCE);
@@ -139,12 +140,20 @@ library Bytes32Lib {
     return data.setBytes4(LAST_COMPLETED, lastCompleted);
   }
 
-  function getPercentage(bytes32 data) internal returns(uint256) {
-    return data.getByte(PERCENTAGE);
+  function getCharityPercentage(bytes32 data) internal returns(uint256) {
+    return data.getByte(CHARITY_PERCENTAGE);
   }
 
-  function setPercentage(bytes32 data, uint256 percentage) internal returns(bytes32) {
-    return data.setByte(PERCENTAGE, percentage);
+  function setCharityPercentage(bytes32 data, uint256 charityPercentage) internal returns(bytes32) {
+    return data.setByte(CHARITY_PERCENTAGE, charityPercentage);
+  }
+
+   function getTrainerPercentage(bytes32 data) internal returns(uint256) {
+    return data.getByte(TRAINER_PERCENTAGE);
+  }
+
+  function setTrainerPercentage(bytes32 data, uint256 trainerPercentage) internal returns(bytes32) {
+    return data.setByte(TRAINER_PERCENTAGE, trainerPercentage);
   }
 
 }

@@ -5,7 +5,8 @@ export interface CampaignInitData {
   length: number;
   frequency: number;
   cooldown: number;
-  percentage: number;
+  charityPercentage: number;
+  trainerPercentage: number;
 }
 
 export interface CampaignData extends CampaignInitData {
@@ -32,7 +33,8 @@ const dataPositions: DataPositions<CampaignData> = {
   bonus: {start: 30, end: 38},
   missed: {start: 38, end: 42},
   lastCompleted: {start: 42, end: 50},
-  percentage: {start: 50, end: 52},
+  charityPercentage: {start: 50, end: 52},
+  trainerPercentage: {start: 52, end: 54},
 };
 
 export class Campaign {
@@ -92,7 +94,8 @@ export class Campaign {
     this.length = values.length;
     this.frequency = values.frequency;
     this.cooldown = values.cooldown;
-    this.percentage = values.percentage;
+    this.charityPercentage = values.charityPercentage;
+    this.trainerPercentage = values.trainerPercentage;
 
     if (Campaign.isFullCampaignData(values)) {
       this.completed = values.completed;
@@ -155,6 +158,9 @@ export class Campaign {
   public get lastCompleted(): number {return this.getNumber('lastCompleted'); }
   public set lastCompleted(value: number) { this.setNumber('lastCompleted', value); }
 
-  public get percentage(): number {return this.getNumber('percentage'); }
-  public set percentage(value: number) { this.setNumber('percentage', value); }
+  public get charityPercentage(): number {return this.getNumber('charityPercentage'); }
+  public set charityPercentage(value: number) { this.setNumber('charityPercentage', value); }
+
+  public get trainerPercentage(): number {return this.getNumber('trainerPercentage'); }
+  public set trainerPercentage(value: number) { this.setNumber('trainerPercentage', value); }
 }

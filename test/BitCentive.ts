@@ -17,7 +17,7 @@ const hours = 60 * 60;
 interface CampaignTestData extends CampaignInitData {
   stake: BigNumber;
   user: string;
-  judge?: string;
+  trainer?: string;
 }
 
 
@@ -26,7 +26,7 @@ contract('BitCentive', (accounts) => {
   const owner = accounts[0];
   const user1 = accounts[1];
   const user2 = accounts[2];
-  const judge = accounts[3];
+  const trainer = accounts[3];
 
   let bitCentive: any;
 
@@ -36,7 +36,8 @@ contract('BitCentive', (accounts) => {
       length: 2,
       frequency: 2,
       cooldown: 16,
-      percentage: 50,
+      charityPercentage: 50,
+      trainerPercentage: 0,
       stake: oneEther.dividedBy(100).times(2), // 1/100 of an ether times total tasks
       user: accounts[1],
 
@@ -46,10 +47,11 @@ contract('BitCentive', (accounts) => {
       length: 10,
       frequency: 5,
       cooldown: 24,
-      percentage: 0,
+      charityPercentage: 25,
+      trainerPercentage: 50,
       stake: oneEther.times(2).dividedBy(100).times(10).times(5), // 2/100 of an ether times total tasks
       user: accounts[1],
-      judge,
+      trainer,
     },
   ];
 
@@ -57,7 +59,7 @@ contract('BitCentive', (accounts) => {
     const campaign = new Campaign(data);
     const tx = await bitCentive.createCampaign(
       campaign.toString(),
-      data.judge || '0x0',
+      data.trainer || '0x0',
       {from: data.user, value: data.stake},
     );
   };
@@ -145,7 +147,7 @@ contract('BitCentive', (accounts) => {
     it('should not let a task be completed for a campaign that doesnt exist', async () => {
       try {
         const campaign = new Campaign(campaignData[0]);
-        await bitCentive.completeTask(1, { from: campaignData[0].user });
+        await bitCentive.completeTaskSelf(1, { from: campaignData[0].user });
       } catch (error) {assertInvalidOpcode(error); return; }
       throw new Error('Expected error to be thrown');
     });
@@ -169,10 +171,11 @@ contract('BitCentive', (accounts) => {
           assert.equal(campaign.bonus, 0);
           assert.equal(campaign.missed, 0);
           assert.equal(campaign.lastCompleted, 0);
-          assert.equal(campaign.percentage, data.percentage);
+          assert.equal(campaign.charityPercentage, data.charityPercentage);
+          assert.equal(campaign.trainerPercentage, data.trainerPercentage);
           assert(campaign.started !== 0);
-          if (data.judge !== undefined) {
-            assert(result[1] === data.judge);
+          if (data.trainer !== undefined) {
+            assert(result[1] === data.trainer);
           } else {
             assert.equal(result[1], zeroAddress);
           }
@@ -186,10 +189,10 @@ contract('BitCentive', (accounts) => {
         throw new Error('Expected error to be thrown');
       });
 
-      it('should not let a task be completed by the user if he picked a judge', async () => {
+      it('should not let a task be completed by the user if he picked a trainer', async () => {
         try {
           const data = campaignData[1];
-          await bitCentive.completeTask(data.nonce, { from: data.user, gasPrice: 0 });
+          await bitCentive.completeTaskSelf(data.nonce, { from: data.user, gasPrice: 0 });
         } catch (error) {assertInvalidOpcode(error); return; }
         throw new Error('Expected error to be thrown');
       });
@@ -201,13 +204,13 @@ contract('BitCentive', (accounts) => {
 
         beforeEach(async () => {
           startingBalance = await promiseIfy(web3.eth.getBalance, data.user);
-          const tx = await bitCentive.completeTask(data.nonce, { from: data.user, gasPrice: 0 });
+          const tx = await bitCentive.completeTaskSelf(data.nonce, { from: data.user, gasPrice: 0 });
           endingBalance = await promiseIfy(web3.eth.getBalance, data.user);
         });
 
         it('should not let a task be completed again before the cooldown is over', async () => {
           try {
-            await bitCentive.completeTask(data.nonce, { from: data.user, gasPrice: 0 });
+            await bitCentive.completeTaskSelf(data.nonce, { from: data.user, gasPrice: 0 });
           } catch (error) {assertInvalidOpcode(error); return; }
           throw new Error('Expected error to be thrown');
         });
@@ -230,7 +233,7 @@ contract('BitCentive', (accounts) => {
           beforeEach(async () => {
             await wait(data.cooldown * 1.1 * hours);
             startingBalance = await promiseIfy(web3.eth.getBalance, data.user);
-            const tx = await bitCentive.completeTask(data.nonce, { from: data.user, gasPrice: 0 });
+            const tx = await bitCentive.completeTaskSelf(data.nonce, { from: data.user, gasPrice: 0 });
             endingBalance = await promiseIfy(web3.eth.getBalance, data.user);
           });
 
@@ -243,7 +246,7 @@ contract('BitCentive', (accounts) => {
           it('should not let more tasks be completed if they are done for the week', async () => {
             try {
               await wait(data.cooldown * 1.1 * hours);
-              await bitCentive.completeTask(data.nonce, { from: data.user, gasPrice: 0 });
+              await bitCentive.completeTaskSelf(data.nonce, { from: data.user, gasPrice: 0 });
             } catch (error) {assertInvalidOpcode(error); return; }
             throw new Error('Expected error to be thrown');
           });

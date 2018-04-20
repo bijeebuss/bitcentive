@@ -18,6 +18,7 @@
   "dependencies": {
     "bignumber.js": "4.1.0",
     "bip39": "2.4.0",
+    "ethereumjs-abi": "0.6.5",
     "ethereumjs-util": "5.1.2",
     "ethereumjs-wallet": "0.6.0",
     "hdkey": "0.7.1",

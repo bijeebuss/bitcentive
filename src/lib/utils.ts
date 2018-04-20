@@ -1,3 +1,4 @@
+
 type asyncFunc0<T> = (callback: (err: any, result: T ) => void ) => void;
 type asyncFunc1<T> = (arg1: any, callback: (err: any, result: T ) => void ) => void;
 type asyncFunc2<T> = (arg1: any, arg2: any, callback: (err: any, result: T ) => void ) => void;
@@ -17,10 +18,3 @@ export function promiseIfy<T>(func: AsyncFunc<T>, ...args: any[] ): Promise<T> {
   });
 }
 
-// export function values<T>(object: {[index: string]: T}): T[] {
-//   const v: T[] = [];
-//   Object.keys(object).forEach((element) => {
-//     v.push(object[element]);
-//   });
-//   return v;
-// }

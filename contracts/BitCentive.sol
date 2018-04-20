@@ -24,11 +24,11 @@ contract BitCentive is Ownable {
   //   byte frequency;         // 1 = once per week
   //   byte cooldown;          // hours
   //   bytes4 stake;           // szabo
-  //   bytes2 completed;       // tasks completed
+  //   bytes2 completed;       // checkins completed
   //   bytes4 started;         // timestamp
   //   bytes4 bonus;           // szabo
-  //   bytes2 missed;          // tasks missed
-  //   bytes4 lastCompleted;   // time of last completed task
+  //   bytes2 missed;          // checkins missed
+  //   bytes4 lastCompleted;   // time of last completed checkin
   //   byte charityPercentage; // percentage of penalty to give to charity
   //   byte trainerPercentage; // percentage of payout to give to trainer
   // }
@@ -45,8 +45,8 @@ contract BitCentive is Ownable {
     require(data.getFrequency() != 0);
     require(data.getCharityPercentage() <= 100);
     require(data.getTrainerPercentage() <= 100);
-    require(data.getCooldown() * data.getFrequency() < 168); // must be possible to complete the tasks in time
-    require((msg.value / 1 szabo) % totalTasks(data) == 0);  // total stake must be divisible by number of tasks
+    require(data.getCooldown() * data.getFrequency() < 168); // must be possible to complete the checkins in time
+    require((msg.value / 1 szabo) % totalCheckins(data) == 0);  // total stake must be divisible by number of checkins
     if (trainer == 0) {
       require(data.getTrainerPercentage() == 0);
     }
@@ -64,19 +64,25 @@ contract BitCentive is Ownable {
     }
   }
 
-  function completeTaskSelf(uint16 nonce) public {
+  function checkinSelf(uint16 nonce) public {
     bytes32 data = campaigns[msg.sender][nonce].data;
     require(campaigns[msg.sender][nonce].trainer == 0);
-    completeTask(data, false, 0x0);
+    checkin(msg.sender, data, false, 0x0);
   }
 
-  function completeTaskTrainer(uint16 nonce, uint256 timestamp, bool billable, uint8 v, bytes32 r, bytes32 s) public {
+  function checkinTrainer(uint16 nonce, uint256 timestamp, bool billable, uint8 v, bytes32 r, bytes32 s) public {
     bytes32 data = campaigns[msg.sender][nonce].data;
     address trainer = campaigns[msg.sender][nonce].trainer;
-    bytes32 taskHash = sha256(this, msg.sender, nonce, timestamp, billable);
+    bytes32 checkinHash = sha256(this, msg.sender, nonce, timestamp, billable);
     require((now < timestamp + data.getCooldown()) && (now > timestamp - data.getCooldown()));
-    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", taskHash), v, r, s) == trainer);
-    completeTask(data, billable, trainer);
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", checkinHash), v, r, s) == trainer);
+    checkin(msg.sender, data, billable, trainer);
+  }
+
+  function endCampaign(address user, uint16 nonce) public {
+    bytes32 data = campaigns[user][nonce].data;
+    require(due(data) >= totalCheckins(data));
+    checkin(user, data, false, campaigns[user][nonce].trainer);
   }
 
   function sponsor(address user, uint16 nonce) public payable {
@@ -87,16 +93,18 @@ contract BitCentive is Ownable {
   }
 
   function donate(bytes32 data) public payable {
-    require(owner.call.value(msg.value)());
+    uint256 dueCharity = msg.value * data.getCharityPercentage() / uint256(0xFF);
+    require(charity.call.value(dueCharity)());
+    require(owner.call.value(msg.value - dueCharity)());
   }
 
   // ------------------------------------------------------------------
   // PRIVATE MUTABLE FUNCTIONS
   // ------------------------------------------------------------------
-  function completeTask(bytes32 data, bool billable, address trainer) private {
+  function checkin(address user, bytes32 data, bool billable, address trainer) private {
     require(data.getStarted() != 0);
     require(now - data.getLastCompleted() > data.getCooldown() * 1 hours);
-    require(finished(data) < totalTasks(data));
+    require(finished(data) < totalCheckins(data));
     require(finished(data) < due(data) + data.getFrequency());
 
     uint256 recentlyMissed = 0;
@@ -106,22 +114,22 @@ contract BitCentive is Ownable {
     }
 
     bool completed = false;
-    if (finished(data) < totalTasks(data)) {
+    if (finished(data) < totalCheckins(data)) {
       completed = true;
       data = data
         .setCompleted(data.getCompleted() + 1)
         .setLastCompleted(now);
     }
 
-    campaigns[msg.sender][data.getNonce()].data = data;
+    campaigns[user][data.getNonce()].data = data;
 
-    sendPayout(data, completed, billable, trainer);
+    sendPayout(user, data, completed, billable, trainer);
   }
 
   // ------------------------------------------------------------------
   // PRIVATE EXTERNALLY CALLING FUNCTIONS
   // ------------------------------------------------------------------
-  function sendPayout(bytes32 data, bool completed, bool billable, address trainer) private {
+  function sendPayout(address user, bytes32 data, bool completed, bool billable, address trainer) private {
     uint256 dueUser = 0;
     uint256 dueTrainer = 0;
 
@@ -132,25 +140,25 @@ contract BitCentive is Ownable {
       dueUser += payout(data) - dueTrainer;
     }
 
-    // only do penalty and bonus if its the last task
-    if (finished(data) >= totalTasks(data)) {
-      dueUser += processFinalTask(data);
+    // only do penalty and bonus if its the last checkin
+    if (finished(data) >= totalCheckins(data)) {
+      dueUser += processFinalCheckin(data);
     }
 
     if (dueTrainer > 0) {
       require(trainer.call.value(dueTrainer)());
     }
     if (dueUser > 0) {
-      require(msg.sender.call.value(dueUser)());
+      require(user.call.value(dueUser)());
     }
   }
 
-  function processFinalTask(bytes32 data) private returns(uint256 refund) {
+  function processFinalCheckin(bytes32 data) private returns(uint256 refund) {
     uint256 penalty = 0;
 
-    // lose bonus for each missed task
+    // lose bonus for each missed checkin
     uint256 potentialBonus = data.getBonus() * 1 szabo;
-    uint256 bonus = potentialBonus * data.getCompleted() / totalTasks(data);
+    uint256 bonus = potentialBonus * data.getCompleted() / totalCheckins(data);
     refund += bonus;
 
     if (bonus < potentialBonus) {
@@ -186,24 +194,24 @@ contract BitCentive is Ownable {
   // ------------------------------------------------------------------
   // PRIVATE CONSTANT FUNCTIONS
   // ------------------------------------------------------------------
-  // number of tasks that are required to be completed by now
+  // number of checkins that are required to be completed by now
   function due(bytes32 data) private view returns(uint256) {
     uint256 fullWeeksElapsed = (now - data.getStarted()) / 1 weeks; // flooring division
-    uint256 tasksDue = fullWeeksElapsed * data.getFrequency();
-    return tasksDue > totalTasks(data) ? totalTasks(data) : tasksDue;
+    uint256 checkinsDue = fullWeeksElapsed * data.getFrequency();
+    return checkinsDue > totalCheckins(data) ? totalCheckins(data) : checkinsDue;
   }
 
-  // total possible tasks
-  function totalTasks(bytes32 data) private view returns(uint256) {
+  // total possible checkins
+  function totalCheckins(bytes32 data) private view returns(uint256) {
     return data.getFrequency() * data.getLength();
   }
 
-  // amount per task
+  // amount per checkin
   function payout(bytes32 data) private view returns(uint256) {
-    return data.getStake() / totalTasks(data) * 1 szabo;
+    return data.getStake() / totalCheckins(data) * 1 szabo;
   }
 
-  // amount per task
+  // amount per checkin
   function trainerPayout(bytes32 data) private view returns(uint256) {
     return payout(data) * data.getTrainerPercentage() / uint256(100);
   }
@@ -212,4 +220,22 @@ contract BitCentive is Ownable {
   function finished(bytes32 data) private view returns(uint256) {
     return data.getCompleted() + data.getMissed();
   }
+
+  function isValidSignature(
+        address signer,
+        bytes32 hash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s)
+        public
+        constant
+        returns (bool)
+    {
+        return signer == ecrecover(
+            keccak256("\x19Ethereum Signed Message:\n32", hash),
+            v,
+            r,
+            s
+        );
+    }
 }

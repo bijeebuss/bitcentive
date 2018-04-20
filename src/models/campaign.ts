@@ -1,4 +1,7 @@
 import {BigNumber} from 'bignumber.js';
+import * as ethABI from 'ethereumjs-abi';
+import * as ethUtil from 'ethereumjs-util';
+
 
 export interface CampaignInitData {
   nonce: number;
@@ -127,6 +130,13 @@ export class Campaign {
     newData.splice(start, length, uintString);
     this.raw = newData.join('');
   }
+
+  public get hash(): string {
+    const hashBuff = ethABI.soliditySHA3(types, values);
+    const hashHex = ethUtil.bufferToHex(hashBuff);
+    return hashHex;
+  }
+
 
   public get nonce(): number {return this.getNumber('nonce'); }
   public set nonce(value: number) { this.setNumber('nonce', value); }

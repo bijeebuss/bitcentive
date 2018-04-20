@@ -1,0 +1,11 @@
+version: '3'
+services:
+  sqlserver:
+    image: microsoft/mssql-server-linux:2017-CU6
+    ports:
+    - "1433:1433"
+    volumes:
+    - ./cache/sql1data:/var/opt/mssql
+    environment:
+    - ACCEPT_EULA=Y
+    - SA_PASSWORD=yourStrong(!)Password

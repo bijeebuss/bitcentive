@@ -8,6 +8,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Hangfire;
+
 
 namespace bitcentive2
 {
@@ -24,6 +26,10 @@ namespace bitcentive2
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            services.AddHangfire(config =>
+            {
+                config.UseSqlServerStorage("Server=localhost;Database=master;User=sa;Password=yourStrong(!)Password;");
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -35,6 +41,9 @@ namespace bitcentive2
             }
 
             app.UseMvc();
+            //GlobalConfiguration.Configuration.UseSqlServerStorage("Server=localhost;Database=master;User=sa;Password=yourStrong(!)Password;");
+            app.UseHangfireDashboard();
+            app.UseHangfireServer();
         }
     }
 }

@@ -12,6 +12,7 @@
       "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/bitcentive2.dll",
       "args": [],
       "cwd": "${workspaceRoot}",
+      "requireExactSource": false,
       "stopAtEntry": false,
       "launchBrowser": {
         "enabled": false,

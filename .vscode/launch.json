@@ -4,17 +4,47 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-   {
-      "type": "node",
+    {
+      "name": "Server",
+      "type": "coreclr",
       "request": "launch",
-      "name": "truffle tests",
-      "runtimeArgs": ["--nolazy", "-r", "ts-node/register"],
-      "program": "${workspaceFolder}/node_modules/.bin/truffle",
-      "sourceMaps": true,
-      "cwd":"${workspaceFolder}",
-      "protocol": "inspector",
-      "args": ["test", "--contracts_build_directory", ".cache/test/contracts"],
-      "preLaunchTask": "npm: compile-test",
+      //"preLaunchTask": "build",
+      "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/bitcentive2.dll",
+      "args": [],
+      "cwd": "${workspaceRoot}",
+      "stopAtEntry": false,
+      "launchBrowser": {
+        "enabled": false,
+        "args": "${auto-detect-url}",
+        "windows": {
+          "command": "cmd.exe",
+          "args": "/C start ${auto-detect-url}"
+        },
+        "osx": {
+          "command": "open"
+        },
+        "linux": {
+          "command": "xdg-open"
+        }
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceRoot}/Views"
+      }
+    },
+   {
+    "type": "node",
+    "request": "launch",
+    "name": "truffle tests",
+    "runtimeArgs": ["--nolazy", "-r", "ts-node/register"],
+    "program": "${workspaceFolder}/node_modules/.bin/truffle",
+    "sourceMaps": true,
+    "cwd":"${workspaceFolder}",
+    "protocol": "inspector",
+    "args": ["test", "--contracts_build_directory", ".cache/test/contracts"],
+    "preLaunchTask": "npm: compile-test",
     },
   ]
 }

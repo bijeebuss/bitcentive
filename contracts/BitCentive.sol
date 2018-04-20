@@ -17,6 +17,7 @@ contract BitCentive is Ownable {
 
   event Log(bytes32 data);
   event Log(uint256 data);
+  event Log(address data);
 
   // struct Campaign {
   //   bytes2 nonce;
@@ -73,8 +74,10 @@ contract BitCentive is Ownable {
   function checkinTrainer(uint16 nonce, uint256 timestamp, bool billable, uint8 v, bytes32 r, bytes32 s) public {
     bytes32 data = campaigns[msg.sender][nonce].data;
     address trainer = campaigns[msg.sender][nonce].trainer;
-    bytes32 checkinHash = sha256(this, msg.sender, nonce, timestamp, billable);
-    require((now < timestamp + data.getCooldown()) && (now > timestamp - data.getCooldown()));
+    bytes32 checkinHash = keccak256(this, msg.sender, nonce, timestamp, billable);
+    uint256 deadline = timestamp + data.getCooldown() * 1 hours;
+    uint256 open = timestamp - data.getCooldown() * 1 hours;
+    require(now < deadline && now > open);
     require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", checkinHash), v, r, s) == trainer);
     checkin(msg.sender, data, billable, trainer);
   }
@@ -220,22 +223,4 @@ contract BitCentive is Ownable {
   function finished(bytes32 data) private view returns(uint256) {
     return data.getCompleted() + data.getMissed();
   }
-
-  function isValidSignature(
-        address signer,
-        bytes32 hash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s)
-        public
-        constant
-        returns (bool)
-    {
-        return signer == ecrecover(
-            keccak256("\x19Ethereum Signed Message:\n32", hash),
-            v,
-            r,
-            s
-        );
-    }
 }

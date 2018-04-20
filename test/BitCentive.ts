@@ -1,5 +1,7 @@
 import { BigNumber } from 'bignumber.js';
-import { promiseIfy } from '../src/lib/utils';
+import { hashCheckin } from '../src/lib/campaign';
+import { signHash } from '../src/lib/eth';
+import { now, promiseIfy } from '../src/lib/utils';
 import { Campaign, CampaignInitData } from '../src/models/campaign';
 import {
   assertEtherAlmostEqual,
@@ -346,6 +348,33 @@ contract('BitCentive', (accounts) => {
 
         });
 
+      });
+
+      context('After completing trainer checkin', () => {
+        let startingBalance: BigNumber;
+        let endingBalance: BigNumber;
+        const data = campaignData[1];
+
+        beforeEach(async () => {
+          startingBalance = await promiseIfy(web3.eth.getBalance, data.user);
+          const timestamp = now();
+          const hash = hashCheckin(bitCentive.address, data.user, data.nonce, timestamp, true);
+          const sig = await signHash(hash, data.trainer as string, false);
+          const tx = await bitCentive.checkinTrainer(
+            data.nonce,
+            timestamp,
+            true,
+            sig.v,
+            sig.r,
+            sig.s,
+            { from: data.user, gasPrice: 0 },
+          );
+          endingBalance = await promiseIfy(web3.eth.getBalance, data.user);
+        });
+
+        it('', async () => {
+          assert.equal(1, 2);
+        });
       });
     });
   });

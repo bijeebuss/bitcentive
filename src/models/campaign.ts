@@ -1,6 +1,5 @@
 import {BigNumber} from 'bignumber.js';
-import * as ethABI from 'ethereumjs-abi';
-import * as ethUtil from 'ethereumjs-util';
+
 
 
 export interface CampaignInitData {
@@ -129,12 +128,6 @@ export class Campaign {
     const newData = this.raw.split('');
     newData.splice(start, length, uintString);
     this.raw = newData.join('');
-  }
-
-  public get hash(): string {
-    const hashBuff = ethABI.soliditySHA3(types, values);
-    const hashHex = ethUtil.bufferToHex(hashBuff);
-    return hashHex;
   }
 
 

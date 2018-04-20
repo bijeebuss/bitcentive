@@ -13,5 +13,8 @@ module.exports = {
       network_id: "*", // Match any network id
       gasPrice: 0,
     }
+  },
+  mocha: {
+    grep: 'After completing trainer checkin'
   }
 };

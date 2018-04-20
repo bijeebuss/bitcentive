@@ -18,3 +18,7 @@ export function promiseIfy<T>(func: AsyncFunc<T>, ...args: any[] ): Promise<T> {
   });
 }
 
+export function now(): number {
+  return Math.floor(Date.now() / 1000);
+}
+

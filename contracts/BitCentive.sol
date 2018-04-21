@@ -75,8 +75,8 @@ contract BitCentive is Ownable {
     bytes32 data = campaigns[msg.sender][nonce].data;
     address trainer = campaigns[msg.sender][nonce].trainer;
     bytes32 checkinHash = keccak256(this, msg.sender, nonce, timestamp, billable);
-    uint256 deadline = timestamp + data.getCooldown() * 1 hours;
-    uint256 open = timestamp - data.getCooldown() * 1 hours;
+    uint256 deadline = timestamp + data.getCooldown() * 1 hours / 2;
+    uint256 open = timestamp - data.getCooldown() * 1 hours / 2;
     require(now < deadline && now > open);
     require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", checkinHash), v, r, s) == trainer);
     checkin(msg.sender, data, billable, trainer);
@@ -96,9 +96,15 @@ contract BitCentive is Ownable {
   }
 
   function donate(bytes32 data) public payable {
-    uint256 dueCharity = msg.value * data.getCharityPercentage() / uint256(0xFF);
-    require(charity.call.value(dueCharity)());
-    require(owner.call.value(msg.value - dueCharity)());
+    require(data.getCharityPercentage() <= 100);
+    uint256 dueCharity = msg.value * data.getCharityPercentage() / uint256(100);
+    uint256 dueDeveloper = msg.value - dueCharity;
+    if (dueCharity > 0) {
+      require(charity.call.value(dueCharity)());
+    }
+    if (dueDeveloper > 0) {
+      require(owner.call.value(dueDeveloper)());
+    }
   }
 
   // ------------------------------------------------------------------

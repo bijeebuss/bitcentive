@@ -57,7 +57,7 @@ contract('BitCentive', (accounts) => {
       cooldown: 8,
       charityPercentage: 25,
       trainerPercentage: 75,
-      stake: oneEther.dividedBy(100).times(50), // 1/100 of an ether per checkin
+      stake: oneEther.dividedBy(100).times(10), // 1/100 of an ether per checkin
       user: user2,
       trainer,
     },
@@ -87,13 +87,11 @@ contract('BitCentive', (accounts) => {
     );
   };
 
-  before(async () => {
-    clock = await Clock.new({from: owner});
-  });
-
   beforeEach(async () => {
+    clock = await Clock.new({from: owner});
     BitCentive.defaults({from: accounts[0], gasPrice: 0, gas: 3000000});
     bitCentive = await BitCentive.new({from: owner});
+    await bitCentive.setCharity(charity);
   });
 
   context('After fresh deploy.', () => {
@@ -439,16 +437,36 @@ contract('BitCentive', (accounts) => {
         let userEnding: BigNumber;
         let trainerStarting: BigNumber;
         let trainerEnding: BigNumber;
-        const sponsorAmount = oneEther.times(5);
+        let ownerStarting: BigNumber;
+        let ownerEnding: BigNumber;
+        let charityStarting: BigNumber;
+        let charityEnding: BigNumber;
+
+        const sponsorAmount = oneEther.dividedBy(10);
 
         const data = campaignData[1];
 
-        beforeEach(async () => {
+        const userDelta = () => userEnding.minus(userStarting);
+        const trainerDelta = () => trainerEnding.minus(trainerStarting);
+        const ownerDelta = () => ownerEnding.minus(ownerStarting);
+        const charityDelta = () => charityEnding.minus(charityStarting);
+        const setStarting = async () => {
           userStarting = await promiseIfy(web3.eth.getBalance, data.user);
           trainerStarting = await promiseIfy(web3.eth.getBalance, data.trainer as string);
-          await checkinTrainer(data, true);
+          ownerStarting = await promiseIfy(web3.eth.getBalance, owner);
+          charityStarting = await promiseIfy(web3.eth.getBalance, charity);
+        };
+        const setEnding = async () => {
           userEnding = await promiseIfy(web3.eth.getBalance, data.user);
           trainerEnding = await promiseIfy(web3.eth.getBalance, data.trainer as string);
+          ownerEnding = await promiseIfy(web3.eth.getBalance, owner);
+          charityEnding = await promiseIfy(web3.eth.getBalance, charity);
+        };
+
+        beforeEach(async () => {
+          await setStarting();
+          await checkinTrainer(data, true);
+          await setEnding();
         });
 
         it('should update the completed count', async () => {
@@ -463,35 +481,33 @@ contract('BitCentive', (accounts) => {
           const ethPerCheckin = data.stake.dividedBy(totalCheckins);
           const trainerPayout = ethPerCheckin.times(data.trainerPercentage).dividedBy(100);
           const userPayout    = ethPerCheckin.minus(trainerPayout);
-          assertEtherEqual(userEnding.minus(userStarting), userPayout);
+          assertEtherEqual(userDelta(), userPayout);
         });
 
         it('should return the correct amount of ether to the trainer', async () => {
           const totalCheckins = data.length * data.frequency;
           const ethPerCheckin = data.stake.dividedBy(totalCheckins);
           const trainerPayout = ethPerCheckin.times(data.trainerPercentage).dividedBy(100);
-          assertEtherEqual(trainerEnding.minus(trainerStarting), trainerPayout);
+          assertEtherEqual(trainerDelta(), trainerPayout);
         });
 
         context('After completing a non billable trainer checkin', () => {
 
           beforeEach(async () => {
             await wait(data.cooldown * 1.1 * hours);
-            userStarting = await promiseIfy(web3.eth.getBalance, data.user);
-            trainerStarting = await promiseIfy(web3.eth.getBalance, data.trainer as string);
+            await setStarting();
             await checkinTrainer(data, false);
-            userEnding = await promiseIfy(web3.eth.getBalance, data.user);
-            trainerEnding = await promiseIfy(web3.eth.getBalance, data.trainer as string);
+            await setEnding();
           });
 
           it('should return the correct amount of ether to the user', async () => {
             const totalCheckins = data.length * data.frequency;
             const ethPerCheckin = data.stake.dividedBy(totalCheckins);
-            assertEtherEqual(userEnding.minus(userStarting), ethPerCheckin);
+            assertEtherEqual(userDelta(), ethPerCheckin);
           });
 
           it('should return the correct amount of ether to the trainer', async () => {
-            assertEtherEqual(trainerEnding.minus(trainerStarting), 0);
+            assertEtherEqual(trainerDelta(), 0);
           });
 
           it('should not let a non existant campaign be sponsored', async () => {
@@ -534,9 +550,9 @@ contract('BitCentive', (accounts) => {
               context('after checking in a week later', () => {
                 beforeEach(async () => {
                   await wait(1 * weeks);
-                  userStarting = await promiseIfy(web3.eth.getBalance, data.user);
+                  await setStarting();
                   await checkinTrainer(data, false);
-                  userEnding = await promiseIfy(web3.eth.getBalance, data.user);
+                  await setEnding();
                 });
 
                 it('should update the missed count and completed count', async () => {
@@ -549,35 +565,60 @@ contract('BitCentive', (accounts) => {
                 it('should return the correct amount of ether to the user', async () => {
                   const totalCheckins = data.length * data.frequency;
                   const ethPerCheckin = data.stake.dividedBy(totalCheckins);
-                  assertEtherEqual(userEnding.minus(userStarting), ethPerCheckin);
+                  assertEtherEqual(userDelta(), ethPerCheckin);
                 });
 
                 context('after completing the rest of the checkins', () => {
-                  let ownerStarting: BigNumber;
-                  let ownerEnding: BigNumber;
-                  let charityStarting: BigNumber;
-                  let charityEnding: BigNumber;
-
                   beforeEach(async () => {
-                    userStarting = await promiseIfy(web3.eth.getBalance, data.user);
-                    trainerStarting = await promiseIfy(web3.eth.getBalance, data.trainer as string);
-                    ownerStarting = await promiseIfy(web3.eth.getBalance, owner);
-                    charityStarting = await promiseIfy(web3.eth.getBalance, charity);
-
+                    await setStarting();
                     for (let i = 0; i < 4; i++) {
-                      await wait(1.1 * data.cooldown);
+                      await wait(1.1 * data.cooldown * hours);
                       await checkinTrainer(data, true);
                     }
-
-                    userEnding = await promiseIfy(web3.eth.getBalance, data.user);
-                    trainerEnding = await promiseIfy(web3.eth.getBalance, data.trainer as string);
-                    ownerEnding = await promiseIfy(web3.eth.getBalance, owner);
-                    charityEnding = await promiseIfy(web3.eth.getBalance, charity);
+                    await setEnding();
                   });
 
-                  it('work', async () => {
-                    assert(1===1);
+                  it('should update the completed count', async () => {
+                    const result = await bitCentive.campaigns.call(data.user, data.nonce);
+                    const campaign = new Campaign(result[0]);
+                    assert.equal(campaign.completed, 7);
                   });
+
+                  it('should return the correct amount of ether to the user, trainer, charity, developer', async () => {
+                    const result = await bitCentive.campaigns.call(data.user, data.nonce);
+                    const campaign = new Campaign(result[0]);
+                    const completed = 7;
+                    const missed = 3;
+                    const newCompleted = 4;
+
+                    assert.equal(campaign.completed, completed);
+                    assert.equal(campaign.missed, missed);
+
+                    const totalCheckins = data.length * data.frequency;
+                    const ethPerCheckin = data.stake.dividedBy(totalCheckins);
+                    const totalCheckinPayout = ethPerCheckin.times(newCompleted); // 4 new checkins
+
+                    const trainerPayout = ethPerCheckin.times(data.trainerPercentage).dividedBy(100).floor();
+                    const totalTrainerPayout = trainerPayout.times(newCompleted);
+                    assertEtherEqual(trainerDelta(), totalTrainerPayout);
+
+                    const userPayout = totalCheckinPayout.minus(totalTrainerPayout);
+                    // two sponsors 7 completed
+                    const totalBonus = sponsorAmount.times(2);
+                    const achievedBonus = totalBonus.times(completed).dividedBy(totalCheckins);
+                    // trainer refund for 3 missed
+                    const trainerRefund = trainerPayout.times(missed);
+                    assertEtherEqual(userDelta(), userPayout.plus(achievedBonus).plus(trainerRefund));
+
+                    const totalMissedPayouts = ethPerCheckin.times(missed).minus(trainerRefund);
+                    const penalty = totalBonus.minus(achievedBonus).plus(totalMissedPayouts);
+                    const totalCharity = penalty.times(data.charityPercentage).dividedBy(100).floor();
+                    assertEtherEqual(charityDelta(), totalCharity);
+
+                    const totalDeveloper = penalty.minus(totalCharity);
+                    assertEtherEqual(ownerDelta(), totalDeveloper);
+                  });
+
                 });
               });
             });

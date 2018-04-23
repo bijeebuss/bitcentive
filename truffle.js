@@ -15,6 +15,6 @@ module.exports = {
     }
   },
   mocha: {
-    //grep: 'After completing a billable trainer checkin'
+    grep: 'after completing the rest of the checkins'
   }
 };

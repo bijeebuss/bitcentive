@@ -112,5 +112,5 @@ export function assertNumberBelow(actual: NumberLike, expect: NumberLike) {
 
 
 export function wait(seconds: number): Promise<void> {
-  return tempo.wait(seconds);
+  return tempo.wait(Math.floor(seconds));
 }

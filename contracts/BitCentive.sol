@@ -80,6 +80,9 @@ contract BitCentive is Ownable {
     require(now < deadline && now > open);
     require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", checkinHash), v, r, s) == trainer);
     checkin(msg.sender, data, billable, trainer);
+
+    Log(timestamp);
+    Log(now);
   }
 
   function endCampaign(address user, uint16 nonce) public {
@@ -133,6 +136,10 @@ contract BitCentive is Ownable {
     campaigns[user][data.getNonce()].data = data;
 
     sendPayout(user, data, completed, billable, trainer);
+  }
+
+  function setCharity(address newCharity) public onlyOwner {
+    charity = newCharity;
   }
 
   // ------------------------------------------------------------------

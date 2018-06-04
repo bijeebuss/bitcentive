@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 using Hangfire;
 
 
-namespace bitcentive2
+namespace bitcentive
 {
     public class Startup
     {

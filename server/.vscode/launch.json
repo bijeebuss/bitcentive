@@ -9,7 +9,7 @@
       "type": "coreclr",
       "request": "launch",
       //"preLaunchTask": "build",
-      "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/bitcentive2.dll",
+      "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/bitcentive.dll",
       "args": [],
       "cwd": "${workspaceRoot}",
       "requireExactSource": false,
@@ -34,18 +34,6 @@
       "sourceFileMap": {
         "/Views": "${workspaceRoot}/Views"
       }
-    },
-   {
-    "type": "node",
-    "request": "launch",
-    "name": "truffle tests",
-    "runtimeArgs": ["--nolazy", "-r", "ts-node/register"],
-    "program": "${workspaceFolder}/node_modules/.bin/truffle",
-    "sourceMaps": true,
-    "cwd":"${workspaceFolder}",
-    "protocol": "inspector",
-    "args": ["test", "--contracts_build_directory", ".cache/test/contracts"],
-    "preLaunchTask": "npm: compile-test",
     },
   ]
 }

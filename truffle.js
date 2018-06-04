@@ -14,7 +14,7 @@ module.exports = {
       gasPrice: 0,
     }
   },
-  mocha: {
-    grep: 'after completing the rest of the checkins'
-  }
+  // mocha: {
+  //   grep: 'after checking in a week later'
+  // }
 };

@@ -65,6 +65,13 @@ contract BitCentive is Ownable {
     }
   }
 
+  function updateCharityPercentage(uint16 nonce, uint8 charityPercentage) public {
+    bytes32 data = campaigns[msg.sender][nonce].data;
+    require(data.getStarted() != 0);
+    require(charityPercentage <= 100);
+    campaigns[msg.sender][nonce].data = data.setCharityPercentage(charityPercentage);
+  }
+
   function checkinSelf(uint16 nonce) public {
     bytes32 data = campaigns[msg.sender][nonce].data;
     require(campaigns[msg.sender][nonce].trainer == 0);

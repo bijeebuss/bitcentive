@@ -13,37 +13,41 @@ using Hangfire;
 
 namespace bitcentive
 {
-    public class Startup
+  public class Startup
+  {
+    public Startup(IConfiguration configuration)
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
-
-        public IConfiguration Configuration { get; }
-
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
-        {
-            services.AddMvc();
-            services.AddHangfire(config =>
-            {
-                config.UseSqlServerStorage("Server=localhost;Database=master;User=sa;Password=yourStrong(!)Password;");
-            });
-        }
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
-        {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseMvc();
-            //GlobalConfiguration.Configuration.UseSqlServerStorage("Server=localhost;Database=master;User=sa;Password=yourStrong(!)Password;");
-            app.UseHangfireDashboard();
-            app.UseHangfireServer();
-        }
+      Configuration = configuration;
     }
+
+    public IConfiguration Configuration { get; }
+
+    // This method gets called by the runtime. Use this method to add services to the container.
+    public void ConfigureServices(IServiceCollection services)
+    {
+      services.AddMvc();
+      services.AddHangfire(config =>
+      {
+        config.UseSqlServerStorage(ConfigurationExtensions.GetConnectionString(ConfigurationService.Instance.Config, "DefaultConnection"));
+      });
+    }
+
+    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+    public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+    {
+      if (env.IsDevelopment())
+      {
+        app.UseDeveloperExceptionPage();
+      }
+
+      ConfigurationService.Instance = new ConfigurationService(env);
+
+      app.UseMvc();
+      app.UseHangfireDashboard();
+      app.UseHangfireServer();
+
+      // Start hangfire job
+      RecurringJob.AddOrUpdate<BlockService>(b => b.CheckForNewBlocks(), Cron.Minutely);
+    }
+  }
 }

@@ -8,7 +8,7 @@
       "name": "Server",
       "type": "coreclr",
       "request": "launch",
-      //"preLaunchTask": "build",
+      "preLaunchTask": "build",
       "program": "${workspaceRoot}/bin/Debug/netcoreapp2.0/bitcentive.dll",
       "args": [],
       "cwd": "${workspaceRoot}",

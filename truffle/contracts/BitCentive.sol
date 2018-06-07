@@ -15,9 +15,9 @@ contract BitCentive is Ownable {
     address trainer;
   }
 
-  event Log(bytes32 data);
-  event Log(uint256 data);
-  event Log(address data);
+  // event Log(bytes32 data);
+  // event Log(uint256 data);
+  // event Log(address data);
 
   // struct Campaign {
   //   bytes2 nonce;
@@ -87,9 +87,6 @@ contract BitCentive is Ownable {
     require(now < deadline && now > open);
     require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", checkinHash), v, r, s) == trainer);
     checkin(msg.sender, data, billable, trainer);
-
-    Log(timestamp);
-    Log(now);
   }
 
   function endCampaign(address user, uint16 nonce) public {
@@ -225,22 +222,22 @@ contract BitCentive is Ownable {
   }
 
   // total possible checkins
-  function totalCheckins(bytes32 data) private view returns(uint256) {
+  function totalCheckins(bytes32 data) private pure returns(uint256) {
     return data.getFrequency() * data.getLength();
   }
 
   // amount per checkin
-  function payout(bytes32 data) private view returns(uint256) {
+  function payout(bytes32 data) private pure returns(uint256) {
     return data.getStake() / totalCheckins(data) * 1 szabo;
   }
 
   // amount per checkin
-  function trainerPayout(bytes32 data) private view returns(uint256) {
+  function trainerPayout(bytes32 data) private pure returns(uint256) {
     return payout(data) * data.getTrainerPercentage() / uint256(100);
   }
 
   // amount finished
-  function finished(bytes32 data) private view returns(uint256) {
+  function finished(bytes32 data) private pure returns(uint256) {
     return data.getCompleted() + data.getMissed();
   }
 }

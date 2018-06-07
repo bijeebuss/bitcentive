@@ -7,7 +7,7 @@ using Nethereum.Signer;
 
 namespace bitcentive
 {
-  internal class DataService
+  public class DataService
   {
     public static DataService Instance { get; }
 
@@ -23,6 +23,34 @@ namespace bitcentive
       {
         c.Open();
         return c.QuerySingle<string>("GetPrivateKey", commandType: CommandType.StoredProcedure);
+      }
+    }
+
+    internal Guid GenerateAccessToken(string address)
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.QuerySingle<Guid>("GenerateAccessToken", new { address }, commandType: CommandType.StoredProcedure);
+      }
+    }
+
+    internal bool ValidateAccessToken(Guid token, string address)
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.Execute("ValidateAccessToken", new { token, address }, commandType: CommandType.StoredProcedure) > 0;
+      }
+    }
+
+    // returns the address if the token is validated
+    internal string CheckAccessToken(Guid token)
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.ExecuteScalar<string>("CheckAccessToken", new { token }, commandType: CommandType.StoredProcedure);
       }
     }
   }

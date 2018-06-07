@@ -20,7 +20,7 @@ interface Props {
 
 const gaurds = {
   metamask : {condition: () => web3.isLoggedIn(), redirect: '/metamask'},
-  admin : {condition: () => api.isLoggedIn(), redirect: '/login'}
+  loggedIn : {condition: () => api.isLoggedIn(), redirect: '/login'}
 }
 
 class App extends Component<Props> {
@@ -33,8 +33,8 @@ class App extends Component<Props> {
       <Route render={props => <NavBar {...props} />} />
       <div className="App container" id="app-container">
         <Switch>
-          <ProtectedRoute exact path='/' component={Campaigns} gaurds={[gaurds.metamask]}/>
-          <Route path='/metamask' component={MetaMask}/>
+          <ProtectedRoute exact path='/' component={Campaigns} gaurds={[gaurds.metamask, gaurds.loggedIn]}/>
+          <Route path='/metamask' render={props => <MetaMask condition={gaurds.metamask.condition} {...props}/>}/>
           <ProtectedRoute path='/login' component={Login} gaurds={[gaurds.metamask]}/>
         </Switch>
       </div>

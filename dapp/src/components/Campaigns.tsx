@@ -10,5 +10,9 @@ interface State {
 }
 
 export default class Campaigns extends Component<Props, State> {
-
+  render() {
+    return (
+      <h1>Campaigns</h1>
+    )
+  }
 }

@@ -43,7 +43,7 @@ class Login extends Component<Props, State> {
           this.state.loading ?
             loadingBars
           :
-            <button className="btn" onClick={this.login}>Log in</button>
+            <button className="btn btn-info-outline" onClick={this.login}>Log in</button>
         }
       </div>
     )

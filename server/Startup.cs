@@ -30,6 +30,13 @@ namespace bitcentive
       {
         config.UseSqlServerStorage(ConfigurationExtensions.GetConnectionString(ConfigurationService.Instance.Config, "DefaultConnection"));
       });
+
+      services.AddCors(o => o.AddPolicy("AllowAll", builder =>
+      {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+      }));
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -43,6 +50,7 @@ namespace bitcentive
       ConfigurationService.Instance = new ConfigurationService(env);
 
       app.UseMvc();
+      app.UseCors("AllowAll");
       app.UseHangfireDashboard();
       app.UseHangfireServer();
 

@@ -23,7 +23,7 @@ GO
 ALTER TABLE [dbo].[User]
 ADD CONSTRAINT [DF_User_DateCreated] DEFAULT (getdate()) FOR [DateCreated]
 GO
-CREATE INDEX IDX_User_Address ON dbo.[User] ([Address]);
+CREATE UNIQUE INDEX IDX_User_Address ON dbo.[User] ([Address]);
 GO
 
 CREATE TABLE dbo.Campaign
@@ -88,6 +88,72 @@ AS
   SELECT PrivateKey from Config
 GO
 
+CREATE TABLE [dbo].[AccessToken](
+	[AccessTokenId] [int] IDENTITY(1,1) NOT NULL,
+	[UserId] [int] NOT NULL,
+	[AccessTokenGuid] [uniqueidentifier] NOT NULL,
+	[DateCreated] [datetime] NOT NULL,
+	[DateValidated] [datetime] NULL,
+ CONSTRAINT [PK_AccessToken] PRIMARY KEY CLUSTERED 
+(
+	[AccessTokenId] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[AccessToken]
+WITH CHECK ADD CONSTRAINT [FK_AccessToken_User]
+FOREIGN KEY([UserId]) REFERENCES [dbo].[User] ([UserId])
+GO
+
+ALTER TABLE [dbo].[AccessToken] ADD  CONSTRAINT [DF_AccessToken_AccessTokenGuid]  DEFAULT (newid()) FOR [AccessTokenGuid]
+GO
+
+ALTER TABLE [dbo].[AccessToken] ADD  CONSTRAINT [DF_AccessToken_DateCreated]  DEFAULT (getdate()) FOR [DateCreated]
+GO
+
+CREATE PROCEDURE dbo.GenerateAccessToken
+  @address CHAR(42)
+AS
+  -- create a new user if they dont exist
+  INSERT INTO dbo.[User] ([Address]) SELECT (@address)
+  WHERE NOT EXISTS (SELECT 1 FROM dbo.[User] WHERE [Address] = @address)
+
+  -- create a new access token
+  INSERT INTO AccessToken (UserId) 
+  SELECT UserId FROM dbo.[User] u
+  WHERE u.Address = @address
+
+  -- select the guid
+  SELECT AccessTokenGuid
+  FROM AccessToken t
+  WHERE t.AccessTokenId = SCOPE_IDENTITY();
+GO
+
+CREATE PROCEDURE dbo.ValidateAccessToken
+  @token UNIQUEIDENTIFIER,
+  @address CHAR(42)
+AS
+  UPDATE AccessToken set
+    DateValidated = GETDATE()
+  FROM AccessToken t
+  JOIN [User] u on u.UserId = t.UserId
+  WHERE 1=1
+    AND @token = t.AccessTokenGuid 
+    AND u.Address = @address
+    AND DateValidated IS NULL
+GO
+
+CREATE PROCEDURE dbo.CheckAccessToken
+  @token UNIQUEIDENTIFIER
+AS
+  SELECT u.Address
+  FROM AccessToken t
+  JOIN [User] u on u.UserId = t.UserId
+  WHERE 1=1
+    AND @token = t.AccessTokenGuid 
+    AND DateValidated BETWEEN GETDATE() - 1 AND GETDATE()
+GO
 
 
 

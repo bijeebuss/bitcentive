@@ -8,6 +8,7 @@ interface Props {
   location: {
     state: any
   }
+  condition: () => boolean
 }
 
 interface State {
@@ -22,6 +23,11 @@ class MetaMask extends Component<Props, State> {
       redirectToReferrer: false,
       loading:false
     }
+    setTimeout(() => {
+      if(props.condition()) {
+        this.setState({redirectToReferrer: true});
+      }
+    }, 1000)
   }
 
   render() {

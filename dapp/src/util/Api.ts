@@ -1,34 +1,47 @@
 import web3 from './Web3';
 
-class LendingAppService {
+class BitCentiveService {
 
-  accessToken: string;
+  public static tokenKey = 'access-token';
 
-  url = "http://localhost:50412/api/";
+  get accessToken(): string {
+    return sessionStorage.getItem(BitCentiveService.tokenKey);
+  }
+
+  set accessToken(token: string) {
+    sessionStorage.setItem(BitCentiveService.tokenKey, token);
+  }
+
+  url = "http://localhost:5000/api/";
 
   isLoggedIn(){
     return !!this.accessToken
   }
 
-  callApi(endpoint: string, method: string, body?: any): Promise<any>{
-
+  callEndPoint(endpoint: string, method: string, body?: any): Promise<Response> {
     var options = {method:method, headers: new Headers(), body }
     options.headers.append('Content-Type','application/json')
     options.headers.append('Authorization', 'Bearer ' + this.accessToken)
+    return fetch(this.url + endpoint, options);
+  }
 
-    return fetch(this.url + endpoint, options).then(response => {
-      if(response.status !== 200) {
-        if(response.json)
-          throw response.json();
-        else
-          throw response;
-      }
-      return response.json();
-    })
+  async callApi(endpoint: string, method: string, body?: any): Promise<any>{
+
+    let response = await this.callEndPoint(endpoint, method, body);
+    if(response.status === 401) {
+      await this.login();
+      response = await this.callEndPoint(endpoint, method, body);
+    }
+
+    if(response.status !== 200) {
+      throw response.json ? await response.json() : response;
+    }
+
+    return response.json();
   }
 
   generateAccessToken(){
-    return this.callApi("accessToken/create",'POST')
+    return this.callApi("accessToken/create/" + web3.accounts[0],'POST')
     .then(json => {
       this.accessToken = json.token;
       return this.accessToken;
@@ -47,6 +60,10 @@ class LendingAppService {
     .then(token => this.validateAccessToken())
   }
 
+  logout(){
+    sessionStorage.clear();
+  }
+
 }
 
-export default new LendingAppService();
+export default new BitCentiveService();

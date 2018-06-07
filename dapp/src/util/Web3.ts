@@ -21,7 +21,7 @@ class Web3Service {
   constructor() {
     //this.Oracle = contract(oracle_artifacts);
     this.checkAndRefreshWeb3().catch(this.handleCommonError);
-    setInterval(() => this.checkAndRefreshWeb3().catch(this.handleCommonError), 500);
+    setInterval(() => this.checkAndRefreshWeb3().catch(this.handleCommonError), 1000);
   }
 
   //getOracle = () => this.Oracle.deployed()
@@ -89,15 +89,44 @@ class Web3Service {
     }
   }
 
-  personalSign(text: string) {
-    var msg = ethUtil.bufferToHex(ethUtil.toBuffer(text))
-    var from = this.accounts[0]
-    return new Promise((resolve,reject) => {
-      this.web3.personal.sign(msg, from, (err,sig) => {
-        if(err) return reject(err);
-        return resolve(sig);
+  async personalSign(msg: string, account?: string): Promise<string> {
+    let from: string;
+    if (typeof account === 'undefined') {
+      from = this.accounts[0]
+    } else {
+      from = account;
+    }
+
+    return new Promise<string>((resolve, reject) => {
+      let hexMsg = ethUtil.bufferToHex(ethUtil.toBuffer(msg));
+      // current web3js version does not support personal.sign yet
+      this.web3.currentProvider.sendAsync({method: 'personal_sign', params: [hexMsg, from]} as any, (err, result: any) => {
+        if (err) { return reject(err); }
+        if (result.error) {
+          // TODO: make sure personal_sign and eth_sign produce the same result here
+          if (
+            result.error.message &&
+            result.error.message.indexOf('Method personal_sign not supported.') !== -1) {
+            // provider doesnt support personal_sign
+            hexMsg = this.prefixPersonalMessage(msg);
+            return this.web3.eth.sign(from, hexMsg, (ethSignErr, ethSignResult) => {
+              if (ethSignErr) {return reject(ethSignErr); }
+              return resolve(ethSignResult);
+            });
+          } else {
+            return reject(result.error);
+          }
+        }
+        return resolve(result.result);
       });
-    })
+    });
+  }
+
+  private prefixPersonalMessage(msg: string): string {
+    const msgBuf = ethUtil.toBuffer(msg);
+    const prefix = ethUtil.toBuffer('\u0019Ethereum Signed Message:\n' + msgBuf.length.toString());
+    const fullMsg = Buffer.concat([prefix, msgBuf]);
+    return ethUtil.bufferToHex(fullMsg);
   }
 
   toEth = (bigNumber: BigNumber, decimals: number) => {

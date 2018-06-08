@@ -19,9 +19,14 @@ class BitCentiveService {
   }
 
   callEndPoint(endpoint: string, method: string, body?: any): Promise<Response> {
-    var options = {method:method, headers: new Headers(), body }
-    options.headers.append('Content-Type','application/json')
-    options.headers.append('Authorization', 'Bearer ' + this.accessToken)
+    var options = {
+      method:method,
+      headers: {
+        'Content-Type':'application/json',
+        'Authorization': 'Bearer ' + this.accessToken
+      },
+      body
+    }
     return fetch(this.url + endpoint, options);
   }
 
@@ -62,6 +67,10 @@ class BitCentiveService {
 
   logout(){
     sessionStorage.clear();
+  }
+
+  getCampaigns(): Promise<any[]> {
+    return this.callApi('campaign', 'GET');
   }
 
 }

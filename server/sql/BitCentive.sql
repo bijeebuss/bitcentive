@@ -38,7 +38,7 @@ CREATE TABLE dbo.Campaign
   [Started] INT NOT NULL,
   [Bonus] BIGINT NOT NULL,
   Missed INT NOT NULL,
-  LastCompleted DATETIME NOT NULL,
+  LastCompleted INT NOT NULL,
   CharityPercentage TINYINT NOT NULL,
   TrainerPercentage TINYINT NOT NULL,
   [Trainer] [CHAR](42) NULL,
@@ -156,4 +156,9 @@ AS
 GO
 
 
+CREATE PROCEDURE dbo.GetCampaigns
+  @address CHAR(42)
+AS
+  SELECT * FROM dbo.Campaign
+GO
 

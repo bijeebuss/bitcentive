@@ -2,6 +2,7 @@ import * as Web3 from 'web3';
 import * as ethUtil from 'ethereumjs-util';
 import * as contract from 'truffle-contract'
 import {default as BigNumber} from 'bignumber.js';
+import artifacts from '../../../truffle/build/contracts/BitCentive.json';
 
 interface WindowWithWeb3 extends Window {
   web3?: Web3;
@@ -16,15 +17,15 @@ class Web3Service {
 
   web3: Web3;
   accounts: string[];
-  //Oracle: any;
+  BitCentive: any;
 
   constructor() {
-    //this.Oracle = contract(oracle_artifacts);
+    this.BitCentive = contract(artifacts);
     this.checkAndRefreshWeb3().catch(this.handleCommonError);
     setInterval(() => this.checkAndRefreshWeb3().catch(this.handleCommonError), 1000);
   }
 
-  //getOracle = () => this.Oracle.deployed()
+  getBitCentive = () => this.BitCentive.deployed()
 
   isLoggedIn() {
     return !!this.accounts;
@@ -72,8 +73,8 @@ class Web3Service {
         this.accounts = accs;
         this.web3.eth.defaultAccount = accs[0];
         // Bootstrap the contract abstractions for Use.
-        // this.Oracle.setProvider(this.web3.currentProvider);
-        // this.Oracle.defaults({from: accs[0], gasPrice: 20000000000, gas: 300000});
+        this.BitCentive.setProvider(this.web3.currentProvider);
+        this.BitCentive.defaults({from: accs[0], gasPrice: 20000000000, gas: 300000});
         return callback(null, "Observed new accounts");
       }
       return callback(null, "Accounts up to date");
@@ -137,16 +138,15 @@ class Web3Service {
     return new BigNumber(eth).times(new BigNumber(10).pow(decimals));
   }
 
-  // getOracleContractWeb3 = () => {
-  //   var contract = this.web3.eth.contract(oracle_artifacts.abi);
-  //   return new Promise((resolve) => {
-  //     return this.getOracle()
-  //     .then((o: any) => {
-  //       resolve(contract.at(o.address));
-  //     })
-  //   })
-
-  // }
+  getBitCentiveContractWeb3 = () => {
+    var contract = this.web3.eth.contract(artifacts.abi);
+    return new Promise((resolve) => {
+      return this.getBitCentive()
+      .then((o: any) => {
+        resolve(contract.at(o.address));
+      })
+    })
+  }
 
 }
 

@@ -15,6 +15,12 @@ contract BitCentive is Ownable {
     address trainer;
   }
 
+  event CreateCampaign(bytes32 data, address trainer);
+  event Checkin(address user, uint16 nonce);
+  event Sponsor(address user, uint16 nonce);
+  event Donate(bytes32 data);
+  event UpdateCharityPercentage(uint16 nonce, uint8 charityPercentage);
+
   // event Log(bytes32 data);
   // event Log(uint256 data);
   // event Log(address data);
@@ -63,13 +69,8 @@ contract BitCentive is Ownable {
     if (trainer != 0) {
       campaigns[msg.sender][nonce].trainer = trainer;
     }
-  }
 
-  function updateCharityPercentage(uint16 nonce, uint8 charityPercentage) public {
-    bytes32 data = campaigns[msg.sender][nonce].data;
-    require(data.getStarted() != 0);
-    require(charityPercentage <= 100);
-    campaigns[msg.sender][nonce].data = data.setCharityPercentage(charityPercentage);
+    emit CreateCampaign(campaigns[msg.sender][nonce].data, trainer);
   }
 
   function checkinSelf(uint16 nonce) public {
@@ -100,6 +101,8 @@ contract BitCentive is Ownable {
     require(data.getStarted() != 0);
     require(msg.value % 1 szabo == 0); // must be Szabo granularity
     campaigns[user][nonce].data = data.setBonus(data.getBonus() + msg.value / 1 szabo);
+
+    emit Sponsor(user, nonce);
   }
 
   function donate(bytes32 data) public payable {
@@ -112,6 +115,17 @@ contract BitCentive is Ownable {
     if (dueDeveloper > 0) {
       require(owner.call.value(dueDeveloper)());
     }
+
+    emit Donate(data);
+  }
+
+  function updateCharityPercentage(uint16 nonce, uint8 charityPercentage) public {
+    bytes32 data = campaigns[msg.sender][nonce].data;
+    require(data.getStarted() != 0);
+    require(charityPercentage <= 100);
+    campaigns[msg.sender][nonce].data = data.setCharityPercentage(charityPercentage);
+
+    emit UpdateCharityPercentage(nonce, charityPercentage);
   }
 
   // ------------------------------------------------------------------
@@ -140,6 +154,8 @@ contract BitCentive is Ownable {
     campaigns[user][data.getNonce()].data = data;
 
     sendPayout(user, data, completed, billable, trainer);
+
+    emit Checkin(user, uint16(data.getNonce()));
   }
 
   function setCharity(address newCharity) public onlyOwner {

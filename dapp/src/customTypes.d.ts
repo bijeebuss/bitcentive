@@ -4,3 +4,6 @@ declare module 'truffle-contract' {
 
   export = contract;
 }
+
+
+declare module '*.json';

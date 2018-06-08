@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using Dapper;
@@ -51,6 +52,15 @@ namespace bitcentive
       {
         c.Open();
         return c.ExecuteScalar<string>("CheckAccessToken", new { token }, commandType: CommandType.StoredProcedure);
+      }
+    }
+
+    internal IEnumerable<Campaign> GetCampaigns(string address)
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.Query<Campaign>("GetCampaigns", new { address }, commandType: CommandType.StoredProcedure);
       }
     }
   }

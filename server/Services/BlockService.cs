@@ -53,7 +53,6 @@ namespace bitcentive
     private async Task ProcessBlocks(int startingBlock, int numOfBlocks)
     {
       var events = await _ethereum.GetEventsFromBlockRange();
-      var groups =
 
       for (var block = startingBlock; block < startingBlock + numOfBlocks; block++)
       {

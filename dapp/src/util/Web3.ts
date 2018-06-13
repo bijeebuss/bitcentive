@@ -2,7 +2,7 @@ import * as Web3 from 'web3';
 import * as ethUtil from 'ethereumjs-util';
 import * as contract from 'truffle-contract'
 import {default as BigNumber} from 'bignumber.js';
-import artifacts from '../../../truffle/build/contracts/BitCentive.json';
+import * as artifacts from '../../../truffle/build/contracts/BitCentive.json';
 
 interface WindowWithWeb3 extends Window {
   web3?: Web3;
@@ -39,21 +39,15 @@ class Web3Service {
     return new Promise((resolve,reject) => {
       try {
         if (!_window()) return reject("Can't get window reference");
+
         if(this.isLoggedIn() && !this.providerHasChanged()) {
-          return this.refreshAccounts((err, result) => {
-            if(err) return reject(err);
-            else return resolve(result);
-          });
+          return this.refreshAccounts((err, result) => err ? reject(err) : resolve(result));
         }
+
         if(!_window().web3) return reject(new Web3Error("Missing injected web3"));
 
         this.web3 = new Web3(_window().web3.currentProvider);
-        return this.refreshAccounts((err, result) => {
-          if(err)
-            return reject(err);
-          else
-            return resolve(result);
-        });
+        return this.refreshAccounts((err, result) => err ? reject(err) : resolve(result));
       }
       catch(err) {
         return reject(err);
@@ -72,9 +66,11 @@ class Web3Service {
       if (!this.accounts || this.accounts.length !== accs.length || this.accounts[0] !== accs[0]) {
         this.accounts = accs;
         this.web3.eth.defaultAccount = accs[0];
+
         // Bootstrap the contract abstractions for Use.
         this.BitCentive.setProvider(this.web3.currentProvider);
         this.BitCentive.defaults({from: accs[0], gasPrice: 20000000000, gas: 300000});
+
         return callback(null, "Observed new accounts");
       }
       return callback(null, "Accounts up to date");

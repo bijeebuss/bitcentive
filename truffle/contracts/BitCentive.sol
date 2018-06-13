@@ -1,4 +1,4 @@
-pragma solidity 0.4.21;
+pragma solidity 0.4.24;
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./Bytes32Lib.sol";
 
@@ -47,7 +47,7 @@ contract BitCentive is Ownable {
     require(msg.value < 3000 ether); // to avoid szabo overflow
     require(msg.value % 1 szabo == 0); // must be Szabo granularity
     require(campaigns[msg.sender][nonce].data.getStarted() == 0);
-    require(msg.value != 0);
+    require(msg.value != 0, "Must send ETH to stake");
     require(data.getLength() != 0);
     require(data.getFrequency() != 0);
     require(data.getCharityPercentage() <= 100);
@@ -82,11 +82,11 @@ contract BitCentive is Ownable {
   function checkinTrainer(uint16 nonce, uint256 timestamp, bool billable, uint8 v, bytes32 r, bytes32 s) public {
     bytes32 data = campaigns[msg.sender][nonce].data;
     address trainer = campaigns[msg.sender][nonce].trainer;
-    bytes32 checkinHash = keccak256(this, msg.sender, nonce, timestamp, billable);
+    bytes32 checkinHash = keccak256(abi.encodePacked(this, msg.sender, nonce, timestamp, billable));
     uint256 deadline = timestamp + data.getCooldown() * 1 hours / 2;
     uint256 open = timestamp - data.getCooldown() * 1 hours / 2;
     require(now < deadline && now > open);
-    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", checkinHash), v, r, s) == trainer);
+    require(ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", checkinHash)), v ,r ,s) == trainer);
     checkin(msg.sender, data, billable, trainer);
   }
 

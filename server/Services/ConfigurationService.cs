@@ -32,6 +32,12 @@ namespace bitcentive
       }
     }
 
+    public int MaxBatchSize {
+      get {
+        return System.Convert.ToInt32(Config["BlockService:MaxBatchSize"]);
+      }
+    }
+
     public enum Environments { Development, Rinkeby }
   }
 }

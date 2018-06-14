@@ -38,6 +38,18 @@ namespace bitcentive
       }
     }
 
+    public int BlockServiceDelayMinutes {
+      get {
+        return System.Convert.ToInt32(Config["BlockService:BlockServiceDelayMinutes"]);
+      }
+    }
+
+    public int BlockTime {
+      get {
+        return System.Convert.ToInt32(Config["BlockService:BlockTime"]);
+      }
+    }
+
     public enum Environments { Development, Rinkeby }
   }
 }

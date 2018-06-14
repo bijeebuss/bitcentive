@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Numerics;
 using Dapper;
 using Microsoft.Extensions.Configuration;
 using Nethereum.Signer;
@@ -18,12 +19,12 @@ namespace bitcentive
     }
     private readonly string _connectionString = ConfigurationExtensions.GetConnectionString(ConfigurationService.Instance.Config, "DefaultConnection");
 
-    internal string getPrivateKey()
+    internal string GetPrivateKey()
     {
       using (var c = new SqlConnection(_connectionString))
       {
         c.Open();
-        return c.QuerySingle<string>("GetPrivateKey", commandType: CommandType.StoredProcedure);
+        return c.QuerySingle<string>(nameof(GetPrivateKey), commandType: CommandType.StoredProcedure);
       }
     }
 
@@ -32,7 +33,25 @@ namespace bitcentive
       using (var c = new SqlConnection(_connectionString))
       {
         c.Open();
-        return c.QuerySingle<Guid>("GenerateAccessToken", new { address }, commandType: CommandType.StoredProcedure);
+        return c.QuerySingle<Guid>(nameof(GenerateAccessToken), new { address }, commandType: CommandType.StoredProcedure);
+      }
+    }
+
+    internal ContractData GetContract()
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.QuerySingle<ContractData>(nameof(GetContract), commandType: CommandType.StoredProcedure);
+      }
+    }
+
+    internal int? GetLastBlockProcessed()
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.ExecuteScalar<int?>(nameof(GetLastBlockProcessed), commandType: CommandType.StoredProcedure);
       }
     }
 
@@ -41,7 +60,7 @@ namespace bitcentive
       using (var c = new SqlConnection(_connectionString))
       {
         c.Open();
-        return c.Execute("ValidateAccessToken", new { token, address }, commandType: CommandType.StoredProcedure) > 0;
+        return c.Execute(nameof(ValidateAccessToken), new { token, address }, commandType: CommandType.StoredProcedure) > 0;
       }
     }
 
@@ -51,7 +70,7 @@ namespace bitcentive
       using (var c = new SqlConnection(_connectionString))
       {
         c.Open();
-        return c.ExecuteScalar<string>("CheckAccessToken", new { token }, commandType: CommandType.StoredProcedure);
+        return c.ExecuteScalar<string>(nameof(CheckAccessToken), new { token }, commandType: CommandType.StoredProcedure);
       }
     }
 
@@ -60,7 +79,48 @@ namespace bitcentive
       using (var c = new SqlConnection(_connectionString))
       {
         c.Open();
-        return c.Query<Campaign>("GetCampaigns", new { address }, commandType: CommandType.StoredProcedure);
+        return c.Query<Campaign>(nameof(GetCampaigns), new { address }, commandType: CommandType.StoredProcedure);
+      }
+    }
+
+    internal bool SetLastProcessedBlock(BigInteger block)
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.Execute(nameof(SetLastProcessedBlock), new { block }, commandType: CommandType.StoredProcedure) > 0;
+      }
+    }
+
+    internal bool BeginProcessingBlock(BigInteger block, int skippedBlocks)
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.Execute(nameof(BeginProcessingBlock), new { block, skippedBlocks }, commandType: CommandType.StoredProcedure) > 0;
+      }
+    }
+
+    internal void CreateCampaign(CreateCampaign @event)
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        c.Execute(nameof(CreateCampaign), @event, commandType: CommandType.StoredProcedure);
+      }
+    }
+
+    internal void RevertBlock(BigInteger block)
+    {
+      throw new NotImplementedException();
+    }
+
+    internal bool FinishProcessingBlock(BigInteger block)
+    {
+      using (var c = new SqlConnection(_connectionString))
+      {
+        c.Open();
+        return c.Execute(nameof(FinishProcessingBlock), new { block }, commandType: CommandType.StoredProcedure) > 0;
       }
     }
   }

@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Hangfire;
-
+using Hangfire.SqlServer;
 
 namespace bitcentive
 {
@@ -26,9 +26,13 @@ namespace bitcentive
     public void ConfigureServices(IServiceCollection services)
     {
       services.AddMvc();
+
       services.AddHangfire(config =>
       {
-        config.UseSqlServerStorage(ConfigurationExtensions.GetConnectionString(ConfigurationService.Instance.Config, "DefaultConnection"));
+        config.UseSqlServerStorage(
+          ConfigurationExtensions.GetConnectionString(ConfigurationService.Instance.Config, "DefaultConnection"),
+          new SqlServerStorageOptions{QueuePollInterval = TimeSpan.FromSeconds(5)}
+        );
       });
 
       services.AddCors(o => o.AddPolicy("AllowAll", builder =>
@@ -55,7 +59,10 @@ namespace bitcentive
       app.UseHangfireServer();
 
       // Start hangfire job
-      RecurringJob.AddOrUpdate<BlockService>(b => b.CheckForNewBlocks(), Cron.Minutely);
+      RecurringJob.AddOrUpdate<BlockService>(
+        b => b.CheckForNewBlocks(),
+        Cron.MinuteInterval(ConfigurationService.Instance.BlockServiceDelayMinutes)
+      );
     }
   }
 }

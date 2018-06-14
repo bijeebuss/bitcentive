@@ -3,14 +3,6 @@ using Nethereum.Contracts;
 
 namespace bitcentive
 {
-  class EventSet
-  {
-    List<EventLog<CreateCampaign>> CreateCampaign {get; set;}
-    List<EventLog<Checkin>> Checkin {get; set;}
-    List<EventLog<Sponsor>> Sponsor {get; set;}
-    List<EventLog<UpdateCharityPercentage>> UpdateCharityPercentage {get; set;}
-  }
-
   internal class UpdateCharityPercentage
   {
   }

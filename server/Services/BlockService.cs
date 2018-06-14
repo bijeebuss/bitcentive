@@ -11,6 +11,7 @@ using Nethereum.Web3;
 
 namespace bitcentive
 {
+  [AutomaticRetry(Attempts = 0)]
   internal class BlockService
   {
     private readonly DataService _data;
@@ -28,8 +29,8 @@ namespace bitcentive
     {
       for (int i = 0; i < (_config.BlockServiceDelayMinutes * 60000) / _config.BlockTime; i++)
       {
-        var latestBlock = await _ethereum.Web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
-        int? lastBlockProcessed = _data.GetLastBlockProcessed();
+        var latestBlock = (int)(await _ethereum.Web3.Eth.Blocks.GetBlockNumber.SendRequestAsync()).Value;
+        int? lastBlockProcessed = _data.GetLastProcessedBlock();
 
         // last batch still processing
         if(lastBlockProcessed == null)
@@ -40,8 +41,8 @@ namespace bitcentive
 
         // only process blocks that are fully confirmed
         var fullConfirmationTime = 6;
-        var blockDifference = latestBlock.Value - lastBlockProcessed.Value;
-        var missingBlocks = blockDifference - fullConfirmationTime;
+        var blockDifference = latestBlock - lastBlockProcessed.Value;
+        var missingBlocks = blockDifference - fullConfirmationTime + 1;
 
         if (blockDifference < 0)
           throw new Exception("Processed block should not be greater than current block");
@@ -51,7 +52,7 @@ namespace bitcentive
           if (missingBlocks > _config.MaxBatchSize)
             missingBlocks = _config.MaxBatchSize;
 
-          BackgroundJob.Enqueue<BlockService>(b => b.ProcessBlockBatch(lastBlockProcessed.Value + 1, missingBlocks));
+          BackgroundJob.Enqueue<BlockService>(b => b.ProcessBlockBatch(lastBlockProcessed.Value + 1, lastBlockProcessed.Value + missingBlocks));
         }
 
         if(missingBlocks < _config.MaxBatchSize)
@@ -59,24 +60,20 @@ namespace bitcentive
       }
     }
 
-    private async Task ProcessBlockBatch(BigInteger startingBlock, BigInteger numOfBlocks)
+    public async Task ProcessBlockBatch(int startingBlock, int endingBlock)
     {
-      var events = (await _ethereum.GetEventsFromBlockRange(startingBlock, numOfBlocks))
+      var events = (await _ethereum.GetEventsFromBlockRange(startingBlock, endingBlock))
         .GroupBy(e => e.Log.BlockNumber.Value)
         .OrderBy(g => g.Key);
 
-      var skippedBlocks = 0;
+      var lastBlock = startingBlock - 1;
       foreach (var group in events)
       {
-        if (group.Count() == 0)
-        {
-          skippedBlocks += 1;
-          continue;
-        }
+        var block = (int)group.Key;
         try
         {
-          ProcessBlock(group.Key, skippedBlocks, group.OrderBy(e => e.Log.LogIndex.Value));
-          skippedBlocks = 0;
+          ProcessBlock(block, block - lastBlock - 1, group.OrderBy(e => e.Log.LogIndex.Value));
+          lastBlock = block;
         }
         catch (Exception ex)
         {
@@ -84,12 +81,13 @@ namespace bitcentive
         }
       }
 
-      if(skippedBlocks > 0)
-        if(!_data.SetLastProcessedBlock(startingBlock + numOfBlocks))
-          throw new Exception($"Could not set last processed block: {startingBlock + numOfBlocks}");
+      // empty blocks at the end
+      if(lastBlock != endingBlock)
+        if(!_data.SetLastProcessedBlock(endingBlock))
+          throw new Exception($"Could not set last processed block: {endingBlock}");
     }
 
-    private void ProcessBlock(BigInteger block, int skippedBlocks, IEnumerable<IEventLog> events)
+    private void ProcessBlock(int block, int skippedBlocks, IEnumerable<IEventLog> events)
     {
       if(!_data.BeginProcessingBlock(block, skippedBlocks))
         throw new Exception("Could not get block processing lock");

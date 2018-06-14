@@ -38,13 +38,13 @@ namespace bitcentive
       BitCentive = Web3.Eth.GetContract(contractData.Abi, contractData.Address);
     }
 
-    public async Task<List<IEventLog>> GetEventsFromBlockRange(BigInteger startingBlock, BigInteger numOfBlocks)
+    public async Task<List<IEventLog>> GetEventsFromBlockRange(BigInteger startingBlock, BigInteger endingBlock)
     {
       var createCampaignEvent = BitCentive.GetEvent(nameof(CreateCampaign));
       var fromBlock = new BlockParameter(new HexBigInteger(startingBlock));
-      var toBlock = new BlockParameter(new HexBigInteger(startingBlock + numOfBlocks));
-      var filter = await createCampaignEvent.CreateFilterBlockRangeAsync(fromBlock, toBlock);
-      var list = await createCampaignEvent.GetFilterChanges<CreateCampaign>(filter);
+      var toBlock = new BlockParameter(new HexBigInteger(endingBlock));
+      var filterInput = createCampaignEvent.CreateFilterInput(fromBlock, toBlock);
+      var list = await createCampaignEvent.GetAllChanges<CreateCampaign>(filterInput);
       return list.Select(e => (IEventLog)e).ToList();
     }
 

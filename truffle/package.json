@@ -8,7 +8,7 @@
     "test": "npm run compile-test && ts-node -- $(npm bin)/truffle test --contracts_build_directory .cache/test/contracts",
     "compile": "truffle compile",
     "compile-test": "truffle compile --contracts_build_directory .cache/test/contracts",
-    "rpc": "ganache-cli --defaultBalanceEther 10000 -m 'jazz oak wise bleak fiction spike cattle offer judge category toy earth'",
+    "rpc": "ganache-cli --defaultBalanceEther 10000 -d -b 1",
     "deploy:dev": "truffle migrate",
     "seed": "npm-run-all --parallel rpc deploy:dev"
   },

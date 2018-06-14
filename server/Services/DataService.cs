@@ -46,12 +46,12 @@ namespace bitcentive
       }
     }
 
-    internal int? GetLastBlockProcessed()
+    internal int? GetLastProcessedBlock()
     {
       using (var c = new SqlConnection(_connectionString))
       {
         c.Open();
-        return c.ExecuteScalar<int?>(nameof(GetLastBlockProcessed), commandType: CommandType.StoredProcedure);
+        return c.ExecuteScalar<int?>(nameof(GetLastProcessedBlock), commandType: CommandType.StoredProcedure);
       }
     }
 
@@ -83,7 +83,7 @@ namespace bitcentive
       }
     }
 
-    internal bool SetLastProcessedBlock(BigInteger block)
+    internal bool SetLastProcessedBlock(int block)
     {
       using (var c = new SqlConnection(_connectionString))
       {
@@ -92,7 +92,7 @@ namespace bitcentive
       }
     }
 
-    internal bool BeginProcessingBlock(BigInteger block, int skippedBlocks)
+    internal bool BeginProcessingBlock(int block, int skippedBlocks)
     {
       using (var c = new SqlConnection(_connectionString))
       {
@@ -106,16 +106,16 @@ namespace bitcentive
       using (var c = new SqlConnection(_connectionString))
       {
         c.Open();
-        c.Execute(nameof(CreateCampaign), @event, commandType: CommandType.StoredProcedure);
+        c.Execute(nameof(CreateCampaign), commandType: CommandType.StoredProcedure);
+        // c.Execute(nameof(CreateCampaign), @event, commandType: CommandType.StoredProcedure);
       }
     }
 
-    internal void RevertBlock(BigInteger block)
+    internal void RevertBlock(int block)
     {
-      throw new NotImplementedException();
     }
 
-    internal bool FinishProcessingBlock(BigInteger block)
+    internal bool FinishProcessingBlock(int block)
     {
       using (var c = new SqlConnection(_connectionString))
       {

@@ -15,11 +15,12 @@ contract BitCentive is Ownable {
     address trainer;
   }
 
-  event CreateCampaign(bytes32 data, address trainer);
+  event CreateCampaign(address user, bytes32 data, address trainer);
   event Checkin(address user, uint16 nonce);
   event Sponsor(address user, uint16 nonce);
-  event Donate(bytes32 data);
-  event UpdateCharityPercentage(uint16 nonce, uint8 charityPercentage);
+  event Donate(address user, bytes32 data);
+  event UpdateCharityPercentage(address user, uint16 nonce, uint8 charityPercentage);
+  event SetCharity(address charity);
 
   // event Log(bytes32 data);
   // event Log(uint256 data);
@@ -70,7 +71,7 @@ contract BitCentive is Ownable {
       campaigns[msg.sender][nonce].trainer = trainer;
     }
 
-    emit CreateCampaign(campaigns[msg.sender][nonce].data, trainer);
+    emit CreateCampaign(msg.sender, campaigns[msg.sender][nonce].data, trainer);
   }
 
   function checkinSelf(uint16 nonce) public {
@@ -97,15 +98,17 @@ contract BitCentive is Ownable {
   }
 
   function sponsor(address user, uint16 nonce) public payable {
+    emit Sponsor(user, nonce);
+
     bytes32 data = campaigns[user][nonce].data;
     require(data.getStarted() != 0);
     require(msg.value % 1 szabo == 0); // must be Szabo granularity
     campaigns[user][nonce].data = data.setBonus(data.getBonus() + msg.value / 1 szabo);
-
-    emit Sponsor(user, nonce);
   }
 
   function donate(bytes32 data) public payable {
+    emit Donate(msg.sender, data);
+
     require(data.getCharityPercentage() <= 100);
     uint256 dueCharity = msg.value * data.getCharityPercentage() / uint256(100);
     uint256 dueDeveloper = msg.value - dueCharity;
@@ -115,23 +118,23 @@ contract BitCentive is Ownable {
     if (dueDeveloper > 0) {
       require(owner.call.value(dueDeveloper)());
     }
-
-    emit Donate(data);
   }
 
   function updateCharityPercentage(uint16 nonce, uint8 charityPercentage) public {
+    emit UpdateCharityPercentage(msg.sender, nonce, charityPercentage);
+
     bytes32 data = campaigns[msg.sender][nonce].data;
     require(data.getStarted() != 0);
     require(charityPercentage <= 100);
     campaigns[msg.sender][nonce].data = data.setCharityPercentage(charityPercentage);
-
-    emit UpdateCharityPercentage(nonce, charityPercentage);
   }
 
   // ------------------------------------------------------------------
   // PRIVATE MUTABLE FUNCTIONS
   // ------------------------------------------------------------------
   function checkin(address user, bytes32 data, bool billable, address trainer) private {
+    emit Checkin(user, uint16(data.getNonce()));
+
     require(data.getStarted() != 0);
     require(now - data.getLastCompleted() > data.getCooldown() * 1 hours);
     require(finished(data) < totalCheckins(data));
@@ -154,11 +157,10 @@ contract BitCentive is Ownable {
     campaigns[user][data.getNonce()].data = data;
 
     sendPayout(user, data, completed, billable, trainer);
-
-    emit Checkin(user, uint16(data.getNonce()));
   }
 
   function setCharity(address newCharity) public onlyOwner {
+    emit SetCharity(newCharity);
     charity = newCharity;
   }
 
